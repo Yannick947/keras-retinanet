@@ -103,6 +103,7 @@ def create_models(backbone_retinanet, num_classes, weights, multi_gpu=0,
         anchor_params = parse_anchor_parameters(config)
         num_anchors   = anchor_params.num_anchors()
 
+
     # Keras recommends initialising a multi-gpu model on the CPU to ease weight sharing, and to prevent OOM errors.
     # optionally wrap in a parallel model
     if multi_gpu > 1:
@@ -142,13 +143,13 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     Returns:
         A list of callbacks used for training.
     """
-    callbacks = []
+    callbacks = []   
 
     tensorboard_callback = None
 
     if args.tensorboard_dir:
         makedirs(args.tensorboard_dir)
-        tensorboard_callback = keras.callbacks.TensorBoard(
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
             log_dir                = args.tensorboard_dir,
             histogram_freq         = 0,
             batch_size             = args.batch_size,
@@ -181,9 +182,9 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
                 '{backbone}_{dataset_type}_{{epoch:02d}}.h5'.format(backbone=args.backbone, dataset_type=args.dataset_type)
             ),
             verbose=1,
-            # save_best_only=True,
-            # monitor="mAP",
-            # mode='max'
+            save_best_only=True,
+            monitor="mAP",
+            mode='max'
         )
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
