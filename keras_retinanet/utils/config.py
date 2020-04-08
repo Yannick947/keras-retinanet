@@ -41,6 +41,8 @@ def read_config_file(config_path):
 def parse_anchor_parameters(config):
     ratios  = np.array(list(map(float, config['anchor_parameters']['ratios'].split(' '))), keras.backend.floatx())
     scales  = np.array(list(map(float, config['anchor_parameters']['scales'].split(' '))), keras.backend.floatx())
+    # ratios  = np.array([0.427, 1.0, 2.343], keras.backend.floatx()),
+    # scales  = np.array([0.405, 0.637, 1.002], keras.backend.floatx()),
     sizes   = list(map(int, config['anchor_parameters']['sizes'].split(' ')))
     strides = list(map(int, config['anchor_parameters']['strides'].split(' ')))
 

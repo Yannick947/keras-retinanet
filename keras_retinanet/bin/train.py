@@ -20,6 +20,7 @@ import argparse
 import os
 import sys
 import warnings
+import json
 
 import keras
 import keras.preprocessing.image
@@ -50,6 +51,8 @@ from ..utils.keras_version import check_keras_version
 from ..utils.model import freeze as freeze_model
 from ..utils.tf_version import check_tf_version
 from ..utils.transform import random_transform_generator
+from tensorboard.plugins.hparams import api as hp
+from datetime import datetime
 
 
 def makedirs(path):
@@ -149,8 +152,9 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
 
     if args.tensorboard_dir:
         makedirs(args.tensorboard_dir)
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+        tensorboard_callback = keras.callbacks.TensorBoard(
             log_dir                = args.tensorboard_dir,
+            update_freq            = 'batch',
             histogram_freq         = 0,
             batch_size             = args.batch_size,
             write_graph            = True,
@@ -160,6 +164,42 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
             embeddings_layer_names = None,
             embeddings_metadata    = None
         )
+    
+    
+    HP_MIN_SIDE = hp.HParam('image_max_side', hp.IntInterval(1500, 1800))
+    HP_MAX_SIDE = hp.HParam('image_min_side', hp.IntInterval(100, 800))
+    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152']))
+    HP_FILTER   = hp.HParam('image_filter', hp.IntInterval(0, 1000))
+    HP_AUGMENTATION = hp.HParam('augmentation', hp.Discrete(['true', 'false']))
+    HP_FREEZEBACKBONE = hp.HParam('backbone_frozen', hp.Discrete(['true', 'false']))
+    HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
+
+    if args.config: 
+        anchors_opti = 'true'
+    else: 
+        anchors_opti = 'false'
+
+    if args.freeze_backbone: 
+        frozen = 'true'
+    else: 
+        frozen = 'false'
+
+    if args.random_transform: 
+        aug = 'true'
+    else: 
+        aug = 'false'
+
+    hparams = {
+        HP_MIN_SIDE: args.image_min_side,
+        HP_MAX_SIDE: args.image_max_side,
+        HP_BACKBONE: args.backbone,
+        HP_FILTER: args.filtered_above, 
+        HP_AUGMENTATION: aug,
+        HP_FREEZEBACKBONE: frozen,
+        HP_ANCHOROPTI: anchors_opti
+    }
+
+    callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
 
     if args.evaluation and validation_generator:
         if args.dataset_type == 'coco':
@@ -176,15 +216,17 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     if args.snapshots:
         # ensure directory created first; otherwise h5py will error after epoch.
         makedirs(args.snapshot_path)
+        time = datetime.now().strftime("%d-%m-%Y_%H%-M%-S")
+
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 args.snapshot_path,
-                '{backbone}_{dataset_type}_{{epoch:02d}}.h5'.format(backbone=args.backbone, dataset_type=args.dataset_type)
+                '{daytime}_{backbone}_{{epoch:02d}}.h5'.format(daytime=time, backbone=args.backbone)
             ),
             verbose=1,
             save_best_only=True,
             monitor="mAP",
-            mode='max'
+            # mode='max'
         )
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
@@ -432,6 +474,7 @@ def parse_args(args):
     parser.add_argument('--config',           help='Path to a configuration parameters .ini file.')
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
     parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true')
+    parser.add_argument('--filtered-above',   help='The minimum shape in the data set for images in both dimensions', type=int)
 
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
@@ -528,4 +571,14 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    main()
+    METRICS = ['val_loss', 'loss', 'mAP']
+    history = main()
+    print(history.history.keys())
+    #Write the model metrics to tensorboard dir to use in hparam
+    for key in METRICS: 
+        if key in history.history.keys():
+            if key == 'mAP':
+                tf.summary.scalar('final' + key, max(history.history[key]), step=1)
+            else: 
+                tf.summary.scalar('final' + key, min(history.history[key]), step=1)
+
