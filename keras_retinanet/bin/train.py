@@ -25,7 +25,6 @@ import json
 import keras
 import keras.preprocessing.image
 import tensorflow as tf
-
 # Allow relative imports when being executed as script.
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -53,7 +52,6 @@ from ..utils.tf_version import check_tf_version
 from ..utils.transform import random_transform_generator
 from tensorboard.plugins.hparams import api as hp
 from datetime import datetime
-
 
 def makedirs(path):
     # Intended behavior: try to create the directory,
@@ -154,10 +152,10 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         makedirs(args.tensorboard_dir)
         tensorboard_callback = keras.callbacks.TensorBoard(
             log_dir                = args.tensorboard_dir,
-            update_freq            = 'batch',
+            update_freq            = 1000,
             histogram_freq         = 0,
             batch_size             = args.batch_size,
-            write_graph            = True,
+            write_graph            = False,
             write_grads            = False,
             write_images           = False,
             embeddings_freq        = 0,
@@ -168,12 +166,20 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     
     HP_MIN_SIDE = hp.HParam('image_max_side', hp.IntInterval(1500, 1800))
     HP_MAX_SIDE = hp.HParam('image_min_side', hp.IntInterval(100, 800))
-    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152']))
+    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152', 'mobilenet224', 'retinanet','densenet', 'vgg']))
     HP_FILTER   = hp.HParam('image_filter', hp.IntInterval(0, 1000))
     HP_AUGMENTATION = hp.HParam('augmentation', hp.Discrete(['true', 'false']))
     HP_FREEZEBACKBONE = hp.HParam('backbone_frozen', hp.Discrete(['true', 'false']))
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
+    HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
+    HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(10000000000000, 30000000000000))
+    HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'flase']))
 
+    if args.no_resize: 
+        no_resize = 'true'
+    else: 
+        no_resize = 'false'
+    
     if args.config: 
         anchors_opti = 'true'
     else: 
@@ -196,7 +202,10 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_FILTER: args.filtered_above, 
         HP_AUGMENTATION: aug,
         HP_FREEZEBACKBONE: frozen,
-        HP_ANCHOROPTI: anchors_opti
+        HP_ANCHOROPTI: anchors_opti,
+        HP_NUMCLASSES: args.num_classes,
+        HP_DATEINT: int(datetime.now().strftime("%Y%m%d%H%M%S")),
+        HP_NORESIZE: no_resize
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
@@ -216,17 +225,19 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     if args.snapshots:
         # ensure directory created first; otherwise h5py will error after epoch.
         makedirs(args.snapshot_path)
+
         time = datetime.now().strftime("%d-%m-%Y_%H%-M%-S")
+        print('Time now and foldername in Tensorboard: ', time)
 
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 args.snapshot_path,
-                '{daytime}_{backbone}_{{epoch:02d}}.h5'.format(daytime=time, backbone=args.backbone)
+                '{daytime}_{backbone}_{{epoch:02d}}_{num_trainer}.h5'.format(daytime=time, backbone=args.backbone, num_trainer=args.num_trainer)
             ),
             verbose=1,
             save_best_only=True,
             monitor="mAP",
-            # mode='max'
+            mode='max'
         )
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
@@ -234,7 +245,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor    = 'loss',
         factor     = 0.1,
-        patience   = 2,
+        patience   = 3,  #changed to 3, before was 2, to wait more time until change
         verbose    = 1,
         mode       = 'auto',
         min_delta  = 0.0001,
@@ -339,6 +350,7 @@ def create_generators(args, preprocess_image):
                 shuffle_groups=False,
                 **common_args
             )
+            print(args.val_annotations)
         else:
             validation_generator = None
     elif args.dataset_type == 'oid':
@@ -475,7 +487,10 @@ def parse_args(args):
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
     parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true')
     parser.add_argument('--filtered-above',   help='The minimum shape in the data set for images in both dimensions', type=int)
+    parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=4)
+    parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
 
+  
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
     parser.add_argument('--workers',          help='Number of generator workers.', type=int, default=1)
@@ -551,6 +566,7 @@ def main(args=None):
         validation_generator,
         args,
     )
+
 
     if not args.compute_val_loss:
         validation_generator = None
