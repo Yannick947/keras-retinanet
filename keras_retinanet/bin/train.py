@@ -166,13 +166,16 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     
     HP_MIN_SIDE = hp.HParam('image_max_side', hp.IntInterval(1500, 1800))
     HP_MAX_SIDE = hp.HParam('image_min_side', hp.IntInterval(100, 800))
-    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152', 'mobilenet224', 'retinanet','densenet', 'vgg']))
+    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152',
+                                                     'mobilenet128_0.75', 'mobilenet224',
+                                                     'retinanet','densenet', 'vgg16',
+                                                      'vgg19']))
     HP_FILTER   = hp.HParam('image_filter', hp.IntInterval(0, 1000))
     HP_AUGMENTATION = hp.HParam('augmentation', hp.Discrete(['true', 'false']))
     HP_FREEZEBACKBONE = hp.HParam('backbone_frozen', hp.Discrete(['true', 'false']))
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
     HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
-    HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(10000000000000, 30000000000000))
+    HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(1, 30000000000000))
     HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'flase']))
 
     if args.no_resize: 
@@ -204,7 +207,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_FREEZEBACKBONE: frozen,
         HP_ANCHOROPTI: anchors_opti,
         HP_NUMCLASSES: args.num_classes,
-        HP_DATEINT: int(datetime.now().strftime("%Y%m%d%H%M%S")),
+        HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
         HP_NORESIZE: no_resize
     }
 
@@ -278,22 +281,23 @@ def create_generators(args, preprocess_image):
     # create random transform generator for augmenting training data
     if args.random_transform:
         transform_generator = random_transform_generator(
-            min_rotation=-0.1,
-            max_rotation=0.1,
-            min_translation=(-0.1, -0.1),
-            max_translation=(0.1, 0.1),
-            min_shear=-0.1,
-            max_shear=0.1,
-            min_scaling=(0.9, 0.9),
-            max_scaling=(1.1, 1.1),
+            min_rotation=-0.1 * args.augmentation_factor,
+            max_rotation=0.1 * args.augmentation_factor,
+            min_translation=(-0.1 * args.augmentation_factor, -0.1 * args.augmentation_factor),
+            max_translation=(0.1 * args.augmentation_factor, 0.1 * args.augmentation_factor),
+            min_shear=-0.1 * args.augmentation_factor,
+            max_shear=0.1 * args.augmentation_factor,
+            min_scaling=(0.9 * args.augmentation_factor, 0.9 * args.augmentation_factor),
+            max_scaling=(1.1 * args.augmentation_factor, 1.1 * args.augmentation_factor),
             flip_x_chance=0.5,
-            flip_y_chance=0.5,
+            #Does make not that much sense for humans
+            # flip_y_chance=0.5,
         )
         visual_effect_generator = random_visual_effect_generator(
-            contrast_range=(0.9, 1.1),
-            brightness_range=(-.1, .1),
-            hue_range=(-0.05, 0.05),
-            saturation_range=(0.95, 1.05)
+            contrast_range=(0.9 * args.visual_aug_factor, 1.1 * args.visual_aug_factor),
+            brightness_range=(-.1 * args.visual_aug_factor, .1 * args.visual_aug_factor),
+            hue_range=(-0.05 * args.visual_aug_factor, 0.05 * args.visual_aug_factor),
+            saturation_range=(0.95 * args.visual_aug_factor, 1.05 * args.visual_aug_factor)
         )
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
@@ -489,8 +493,9 @@ def parse_args(args):
     parser.add_argument('--filtered-above',   help='The minimum shape in the data set for images in both dimensions', type=int)
     parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=4)
     parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
+    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=int, default=1)
+    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ')
 
-  
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
     parser.add_argument('--workers',          help='Number of generator workers.', type=int, default=1)
