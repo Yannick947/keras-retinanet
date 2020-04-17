@@ -177,6 +177,9 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
     HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(1, 30000000000000))
     HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'flase']))
+    HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0, 10))
+    HP_VISUAL_AUG_FACTOR = hp.HParam('no_resize', hp.RealInterval(0,10))
+
 
     if args.no_resize: 
         no_resize = 'true'
@@ -208,7 +211,9 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_ANCHOROPTI: anchors_opti,
         HP_NUMCLASSES: args.num_classes,
         HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
-        HP_NORESIZE: no_resize
+        HP_NORESIZE: no_resize,
+        HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
+        HP_AUGMENTATION_FACTOR: args.augmentation_factor
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
@@ -491,10 +496,10 @@ def parse_args(args):
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
     parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true')
     parser.add_argument('--filtered-above',   help='The minimum shape in the data set for images in both dimensions', type=int)
-    parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=4)
+    parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=1)
     parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
-    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=int, default=1)
-    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ')
+    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=float, default=1.0)
+    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ', type=float, default=1.0)
 
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
