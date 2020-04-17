@@ -176,15 +176,15 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
     HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
     HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(1, 30000000000000))
-    HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'flase']))
+    HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'false']))
     HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0.0, 10.0))
     HP_VISUAL_AUG_FACTOR = hp.HParam('no_resize', hp.RealInterval(0.0,10.0))
 
 
     if args.no_resize: 
-        no_resize = 'true'
+        no_resize_flag = 'true'
     else: 
-        no_resize = 'false'
+        no_resize_flag = 'false'
     
     if args.config: 
         anchors_opti = 'true'
@@ -211,7 +211,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_ANCHOROPTI: anchors_opti,
         HP_NUMCLASSES: args.num_classes,
         HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
-        HP_NORESIZE: no_resize,
+        HP_NORESIZE: no_resize_flag,
         HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
         HP_AUGMENTATION_FACTOR: args.augmentation_factor
     }
