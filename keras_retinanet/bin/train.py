@@ -176,7 +176,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
     HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
     HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(1, 30000000000000))
-    HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'false']))
+    # HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'false']))
     HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0.0, 10.0))
     HP_VISUAL_AUG_FACTOR = hp.HParam('no_resize', hp.RealInterval(0.0,10.0))
 
@@ -211,9 +211,10 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_ANCHOROPTI: anchors_opti,
         HP_NUMCLASSES: args.num_classes,
         HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
-        HP_NORESIZE: no_resize_flag,
         HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
         HP_AUGMENTATION_FACTOR: args.augmentation_factor
+                # HP_NORESIZE: no_resize_flag,
+
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
@@ -253,7 +254,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor    = 'loss',
         factor     = 0.1,
-        patience   = 3,  #changed to 3, before was 2, to wait more time until change
+        patience   = 2,  
         verbose    = 1,
         mode       = 'auto',
         min_delta  = 0.0001,
@@ -292,17 +293,17 @@ def create_generators(args, preprocess_image):
             max_translation=(0.1 * args.augmentation_factor, 0.1 * args.augmentation_factor),
             min_shear=-0.1 * args.augmentation_factor,
             max_shear=0.1 * args.augmentation_factor,
-            min_scaling=(0.9 * args.augmentation_factor, 0.9 * args.augmentation_factor),
-            max_scaling=(1.1 * args.augmentation_factor, 1.1 * args.augmentation_factor),
+            min_scaling=(1 - args.augmentation_factor, 1 - args.augmentation_factor),
+            max_scaling=(1 + args.augmentation_factor , 1 + args.augmentation_factor),
             flip_x_chance=0.5,
             #Does make not that much sense for humans
             # flip_y_chance=0.5,
         )
         visual_effect_generator = random_visual_effect_generator(
-            contrast_range=(0.9 * args.visual_aug_factor, 1.1 * args.visual_aug_factor),
+            contrast_range=(1 - args.visual_aug_factor, 1 + args.visual_aug_factor),
             brightness_range=(-.1 * args.visual_aug_factor, .1 * args.visual_aug_factor),
             hue_range=(-0.05 * args.visual_aug_factor, 0.05 * args.visual_aug_factor),
-            saturation_range=(0.95 * args.visual_aug_factor, 1.05 * args.visual_aug_factor)
+            saturation_range=(1 - args.visual_aug_factor / 2, 1 - args.visual_aug_factor / 2)
         )
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
