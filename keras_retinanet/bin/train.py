@@ -293,17 +293,17 @@ def create_generators(args, preprocess_image):
             max_translation=(0.1 * args.augmentation_factor, 0.1 * args.augmentation_factor),
             min_shear=-0.1 * args.augmentation_factor,
             max_shear=0.1 * args.augmentation_factor,
-            min_scaling=(1 - args.augmentation_factor, 1 - args.augmentation_factor),
-            max_scaling=(1 + args.augmentation_factor , 1 + args.augmentation_factor),
+            min_scaling=(1 - args.augmentation_factor / 10, 1 - args.augmentation_factor / 10),
+            max_scaling=(1 + args.augmentation_factor / 10, 1 + args.augmentation_factor / 10),
             flip_x_chance=0.5,
             #Does make not that much sense for humans
             # flip_y_chance=0.5,
         )
         visual_effect_generator = random_visual_effect_generator(
-            contrast_range=(1 - args.visual_aug_factor, 1 + args.visual_aug_factor),
+            contrast_range=(1 - args.visual_aug_factor / 10, 1 + args.visual_aug_factor / 10),
             brightness_range=(-.1 * args.visual_aug_factor, .1 * args.visual_aug_factor),
             hue_range=(-0.05 * args.visual_aug_factor, 0.05 * args.visual_aug_factor),
-            saturation_range=(1 - args.visual_aug_factor / 2, 1 - args.visual_aug_factor / 2)
+            saturation_range=(1 - args.visual_aug_factor / 20, 1 + args.visual_aug_factor / 20)
         )
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
