@@ -29,16 +29,31 @@ def main(args=None):
         lower_video_length = 300
         upper_video_length = 530
     else: 
-        lower_video_length, upper_video_length = get_video_stats(TOP_PATH, lower_quantile=0.1,
-                                                             upper_quantile=0.7, print_stats=True)
+        lower_video_length, upper_video_length = get_video_stats(TOP_PATH,
+                                                                 lower_quantile=0.1,
+                                                                 upper_quantile=0.7,
+                                                                 print_stats=True)
 
     keras.backend.tensorflow_backend.set_session(get_session())
     model = models.load_model(MODEL_PATH, backbone_name=BACKBONE)
     model = models.convert_model(model, nms_threshold = args.nms_threshold)
 
-    generate_csvs(TOP_PATH, model, args,
-                  filter_lower_frames=lower_video_length,
-                  filter_upper_frames=upper_video_length)
+    csv_counter = generate_csvs(TOP_PATH, model, args,
+                                filter_lower_frames=lower_video_length,
+                                filter_upper_frames=upper_video_length)
+    print_csv_stats(csv_counter, lower_video_length, upper_video_length) 
+
+
+def print_csv_stats(csv_counter, lower_quantile, upper_quantile):
+    video_number = 0
+    for _, _, files in os.walk(TOP_PATH):
+        video_number += len([i for i in files if i[-4:] == '.avi'])
+    
+    filter_factor = lower_quantile + (1 - upper_quantile)
+    video_number_filtered = video_number / filter_factor
+
+    print('Video number which should have been processed: ', video_number_filtered)
+    print('Videos which were processed ', csv_counter)
 
 
 def get_session():
@@ -48,11 +63,12 @@ def get_session():
 
 
 def generate_csvs(TOP_PATH, model, args, **kwargs):
+    csv_counter = 0
     for root, _, files in os.walk(TOP_PATH):
         for file_name in files: 
             if file_name[-4:] == '.avi':
-                generate_csv(root, file_name, model, args, **kwargs)
-
+                csv_counter += generate_csv(root, file_name, model, args, **kwargs)
+    return csv_counter
 
 def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upper_frames=1000):
 
@@ -60,14 +76,14 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
 
     if args.skip_existing and csv_exists(video_path, file_name): 
         print('Skip: ', file_name, ' because csv output already existis.')
-        return
+        return 0
 
     vcapture = cv2.VideoCapture(video_path)
     num_frames = int(vcapture.get(cv2.CAP_PROP_FRAME_COUNT))
     
     if num_frames < filter_lower_frames or num_frames > filter_upper_frames:
         print('Skip: ', file_name, ' because its too long or short.')
-        return
+        return 0
 
     height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     downscale_factor_y = 2
@@ -82,6 +98,8 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
 
     print('Finished video and saved detections to: ', video_path [0:-4] + '.csv' )
     vcapture.release()
+    return 1
+
 
 def fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args):
     success = True
