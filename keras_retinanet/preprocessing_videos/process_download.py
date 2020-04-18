@@ -17,7 +17,7 @@ def main():
 
     for file_name in os.listdir(PCDS_DIR):
         remove_depth_videos(PCDS_DIR + file_name)
-        move_videos(PCDS_DIR + file_name, DESTINATION_DIR)
+        move_files(PCDS_DIR + file_name, DESTINATION_DIR)
 
 def set_crawl_dir(dir):
     '''
@@ -52,9 +52,9 @@ def remove_depth_videos(video_dir):
                 os.remove(root + '/' + name.replace('\\','/'))
                 print('Removed: ', name)
             
-def move_videos(source_dir, destination_dir):
+def move_files(source_dir, destination_dir):
     '''
-    Move videos and label files to another folder. Folder structure
+    Move files to another folder. Folder structure
     remains the same and videos stay at their place, label files are
     placed at the destination directory. 
 
