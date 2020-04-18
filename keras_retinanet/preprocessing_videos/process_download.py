@@ -17,7 +17,13 @@ def main():
 
     for file_name in os.listdir(PCDS_DIR):
         remove_depth_videos(PCDS_DIR + file_name)
-        move_files(PCDS_DIR + file_name, DESTINATION_DIR)
+        for root, _, files in os.walk(PCDS_DIR + file_name):
+            for file_name in files: 
+                full_path_file = os.path.join(root, file_name)
+
+                #Get destination path for file and move it
+                destination_path = get_destination(full_path_file, DESTINATION_DIR)
+                move_files(full_path_file, DESTINATION_DIR, destination_path, replace_existings=True)
 
 def set_crawl_dir(dir):
     '''
@@ -52,27 +58,29 @@ def remove_depth_videos(video_dir):
                 os.remove(root + '/' + name.replace('\\','/'))
                 print('Removed: ', name)
             
-def move_files(source_dir, destination_dir):
+def move_files(full_path_file, destination_dir, destination_path, filter_datatypes=None, replace_existings=False):
     '''
+    TODO: !!!replace_existings doesnt work yet!!! has to be implemented
+    
     Move files to another folder. Folder structure
     remains the same and videos stay at their place, label files are
     placed at the destination directory. 
 
     Arguements: 
-        source_dir: Path to the directory which shall be moved
+        full_path_file: Path to the file which shall be moved
         destination_dir: Directory where files shall be placed in 
-    
+        destination_path: Exact path where file shall be placed including the name of the file
+        filter_datatypes: !!List!! of datatypes which shall be considered (e.g '.csv')
+        replace_existings: Boolean which indicates if existing files in destination directory shall
+                           be replaced
     '''
 
     existing_files = list()
     for _, _, files in os.walk(destination_dir):
-        existing_files += files
+        existing_files = existing_files.extend(files)
 
-    for root, _, files in os.walk(source_dir):
-        for file_name in files: 
-            full_path_file = os.path.join(root, file_name)
-            destination_path = get_destination(full_path_file, destination_dir)
-            os.replace(full_path_file, destination_path)
+    if (filter_datatypes == None) or (any(filter_d in full_path_file for filter_d in filter_datatypes)):
+        os.replace(full_path_file, destination_path)
 
 def get_destination(full_path_file, destination_dir):
     '''
@@ -85,7 +93,7 @@ def get_destination(full_path_file, destination_dir):
         returns: The exact absolute path to the directory within the destination_dir
         where the file shall be placed
     '''
-    
+            
     if 'label' in full_path_file: 
         return destination_dir + full_path_file[full_path_file.find('\\'):].replace('\\', '_')
 
