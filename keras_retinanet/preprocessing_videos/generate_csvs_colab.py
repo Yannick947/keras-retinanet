@@ -56,27 +56,27 @@ def generate_csvs(TOP_PATH, model, args, **kwargs):
 
 def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upper_frames=1000):
 
-
     video_path = os.path.join(root, file_name)
+
+    if args.skip_existing and csv_exists(video_path, file_name): 
+        print('Skip: ', file_name, ' because csv output already existis.')
+        return
+
     vcapture = cv2.VideoCapture(video_path)
-
     num_frames = int(vcapture.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps_video = vcapture.get(cv2.CAP_PROP_FPS)
-    frame_ratio =  args.num_fps / fps_video
-
-    #The second argument defines the frame number in range 0.0-1.0, first argument is flag for video ratio
-    vcapture.set(2,frame_ratio)
-
-    #skip if video is too short or too long
-    if num_frames < filter_lower_frames or num_frames > filter_upper_frames or csv_exists(video_path, file_name):
+    
+    if num_frames < filter_lower_frames or num_frames > filter_upper_frames:
+        print('Skip: ', file_name, ' because its too long or short.')
         return
 
     height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
     downscale_factor_y = 2
 
     #create empty df for predictions.
-    # Filter_upper_frame will set the length until where will be padded
-    df_detections = create_zeroed_df(downscale_factor_y, filter_upper_frames, height)
+    frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
+    df_detections_size = int(filter_upper_frames * args.fps / frame_rate)
+    df_detections = create_zeroed_df(downscale_factor_y, df_detections_size, height)
+    #Fill df with predictions
     df_detections = fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args)
     df_detections.to_csv(video_path [0:-4] + '.csv', header=None)
 
@@ -86,12 +86,14 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
 def fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args):
     success = True
     frame_index = 0
+    frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
+    time_scale_factor = int(frame_rate / args.fps)
 
     while success:
         frame_index += 1
         success, image = vcapture.read()
 
-        if success:
+        if success and ((frame_index % time_scale_factor) == 0):
             image = preprocess_image(image)
 
             #800 and 1300 are values usally used during training, adjust if used differently
@@ -107,7 +109,7 @@ def fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args):
                 b = box.astype(int)
 
                 #fill df with probability at the center of y axis, consider rezizing with downscale_factor_y
-                df_detections.iloc[frame_index, int((b[3] + b[1]) / downscale_factor_y / 2 )] = score
+                df_detections.iloc[int(frame_index /time_scale_factor), int((b[3] + b[1]) / downscale_factor_y / 2 )] = score
     return df_detections
 
 def create_zeroed_df(factor_y, num_frames, height):
@@ -134,9 +136,9 @@ def get_video_stats(TOP_PATH, lower_quantile, upper_quantile, print_stats=False)
     return video_length.quantile(lower_quantile), video_length.quantile(upper_quantile)
 
 def csv_exists(video_path, file_name):
-    video_folder = video_path[video_path.find(file_name):]
-    existing_csvs = os.listdir(video_folder)
-    return file_name in existing_csvs
+    video_folder = video_path[:video_path.find(file_name)]
+    existing_files = os.listdir(video_folder)
+    return file_name[0:-4] + '.csv' in existing_files
 
 def parse_args(args):
     """ Parse the arguments.
