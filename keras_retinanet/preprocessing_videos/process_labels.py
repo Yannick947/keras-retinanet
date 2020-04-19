@@ -19,27 +19,27 @@ def main():
 
     print('Has to be tested again when new data is available')
     for file_name in os.listdir(TOP_PATH): 
-        if 'label' in file_name and not ('crowd' in file_name) and not (file_name == 'labels_united.csv'):
+        if 'label' in file_name and not ('crowd' in file_name) and not (file_name == 'pcds_dataset_labels_united.csv'):
             df_labels = load_labels(TOP_PATH)
 
             labels_singlefile = get_labels(TOP_PATH, file_name)
             labels_singlefile = correct_path(labels_singlefile, file_name)
-            
+
             unite_labels(TOP_PATH, df_labels, labels_singlefile)
 
 def unite_labels(top_path, df_labels, labels_singlefile):
     '''
-    Add content of all existing label.txt files to the labels_united.csv file
+    Add content of all existing label.txt files to the pcds_dataset_labels_united.csv.csv file
 
     Arguments: 
-        top_path: Path where labels_united.csv must be placed and where shall 
+        top_path: Path where pcds_dataset_labels_united.csv.csv must be placed and where shall 
         be searched for label.txt files 
     '''
 
     df_labels = pd.concat([df_labels, labels_singlefile],
                             axis=0).drop_duplicates(subset='file_name')
 
-    df_labels.to_csv(top_path + '/labels_united.csv', header = None, index=None)
+    df_labels.to_csv(top_path + '/pcds_dataset_labels_united.csv', header = None, index=None)
                 
 
 def correct_path(df_labels, file_name): 
@@ -56,24 +56,48 @@ def correct_path(df_labels, file_name):
     '''
     
     if 'front' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4] + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4].replace('Depth', 'Color') + '.csv')
         return df_labels
 
     elif 'back' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4] + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4].replace('Depth', 'Color') + '.csv')
         return df_labels
     
     else: 
         raise ValueError('File {} not a valid label file'.format(file_name))
 
 
+def correct_path_csv(df_labels, file_name, save_folder): 
+    ''' 
+    Due to the change of the folder structure it has to be added the 'front_in' or 'back_out' dir
+    and saves to label csv file
+
+    Arguments: 
+        df_labels: The dataframe with the labels
+        file_name: The filename of the label file 
+        save_folder: Folder where labels_united.csv shall be saved
+
+        raises: ValueError if there is no back or front in the label path
+    '''
+    
+    if 'front' in file_name: 
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4] + '.csv')
+
+    elif 'back' in file_name: 
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4] + '.csv')
+    
+    else: 
+        raise ValueError('File {} not a valid label file'.format(file_name))
+    
+    df_labels.to_csv(os.path.join(save_folder, 'pcds_dataset_labels_united.csv'))
+
 def load_labels(top_path):
     '''
-    Checks in top path if there is an already existing 'labels_united.csv', 
+    Checks in top path if there is an already existing 'pcds_dataset_labels_united.csv', 
     otherwise return an empty df with correct header names
 
     Arguments: 
-        top_path: Path where shall be searched for the labels_united.csv file
+        top_path: Path where shall be searched for the pcds_dataset_labels_united.csv file
 
         returns: The previously stored labels_united file as pandas Dataframe, 
                  and an empty Dataframe if no such file exists
@@ -81,8 +105,8 @@ def load_labels(top_path):
 
     files = os.listdir(top_path)
 
-    if 'labels_united.csv' in files: 
-        return pd.read_csv(top_path + '/labels_united.csv', names=HEADER)
+    if 'pcds_dataset_labels_united.csv' in files: 
+        return pd.read_csv(top_path + 'pcds_dataset_labels_united.csv', names=HEADER)
 
     else: 
         return pd.DataFrame(columns=HEADER) 
