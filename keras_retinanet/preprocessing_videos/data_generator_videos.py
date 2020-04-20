@@ -132,7 +132,7 @@ def get_features(file_name):
         return df_x
 
     except Exception as e:
-        print('No matching file for label found, skip')
+        # print('No matching file for label found, skip')
         return None
 
 def get_entering(file_name, df_y): 
@@ -150,7 +150,7 @@ def get_entering(file_name, df_y):
         return entering 
 
     except Exception as e:
-        print('No matching label found for existing csv file')
+        # print('No matching label found for existing csv file')
         return None
 
 def get_exiting(file_name, df_y): 
@@ -168,7 +168,7 @@ def get_exiting(file_name, df_y):
         return exiting 
 
     except Exception as e:
-        print(e, ', no matching label found for existing csv file')
+        # print(e, ', no matching label found for existing csv file')
         return None
     
 
