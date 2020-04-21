@@ -14,8 +14,7 @@ from .. import models
 from ..utils.image import read_image_bgr, preprocess_image, resize_image
 
 TOP_PATH = '../bus_videos/pcds_dataset'
-MODEL_PATH = './snapshots/17-04-2020_07465_resnet50_08_1.h5' 
-labels_to_names = {0: 'pedestrian'}           
+MODEL_PATH = './snapshots/resnet50_vanilla.h5' 
 BACKBONE = 'resnet50'
 
 def main(args=None):
@@ -36,12 +35,14 @@ def main(args=None):
 
     keras.backend.tensorflow_backend.set_session(get_session())
     model = models.load_model(MODEL_PATH, backbone_name=BACKBONE)
-    model = models.convert_model(model, nms_threshold = args.nms_threshold)
+    if MODEL_PATH != './snapshots/resnet50_vanilla.h5':
+        model = models.convert_model(model, nms_threshold = args.nms_threshold)
 
     csv_counter = generate_csvs(TOP_PATH, model, args,
                                 filter_lower_frames=lower_video_length,
                                 filter_upper_frames=upper_video_length)
     print_csv_stats(csv_counter, lower_video_length, upper_video_length) 
+
 
 
 def print_csv_stats(csv_counter, lower_quantile, upper_quantile):
@@ -70,12 +71,13 @@ def generate_csvs(TOP_PATH, model, args, **kwargs):
                 csv_counter += generate_csv(root, file_name, model, args, **kwargs)
     return csv_counter
 
+
 def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upper_frames=1000):
 
     video_path = os.path.join(root, file_name)
 
     if args.skip_existing and csv_exists(video_path, file_name): 
-        print('Skip: ', file_name, ' because csv output already existis.')
+        print('Skip: ', file_name, ' because csv output already exists.')
         return 0
 
     vcapture = cv2.VideoCapture(video_path)
@@ -86,14 +88,14 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
         return 0
 
     height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    downscale_factor_y = 2
+    args_downscale_factor_y = 2
 
     #create empty df for predictions.
     frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
     df_detections_size = int(filter_upper_frames * args.fps / frame_rate)
-    df_detections = create_zeroed_df(downscale_factor_y, df_detections_size, height)
+    df_detections = create_zeroed_df(args_downscale_factor_y, df_detections_size, height)
     #Fill df with predictions
-    df_detections = fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args)
+    df_detections = fill_pred_image(model, df_detections, vcapture, args_downscale_factor_y, args)
     df_detections.to_csv(video_path [0:-4] + '.csv', header=None)
 
     print('Finished video and saved detections to: ', video_path [0:-4] + '.csv' )
@@ -101,7 +103,7 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
     return 1
 
 
-def fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args):
+def fill_pred_image(model, df_detections, vcapture, args_downscale_factor_y, args):
     success = True
     frame_index = 0
     frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
@@ -119,15 +121,17 @@ def fill_pred_image(model, df_detections, vcapture, downscale_factor_y, args):
             boxes, scores, labels = model.predict_on_batch(np.expand_dims(image, axis=0))
             boxes /= scale
 
-            for box, score, _ in zip(boxes[0], scores[0], labels[0]):
+            for box, score, label in zip(boxes[0], scores[0], labels[0]):
+                if (label != 'Person') or (label != 'pedestrian'): 
+                    continue
                 # scores are sorted so we can break
                 if score < args.predict_threshold:
                     break
 
                 b = box.astype(int)
 
-                #fill df with probability at the center of y axis, consider rezizing with downscale_factor_y
-                df_detections.iloc[int(frame_index /time_scale_factor), int((b[3] + b[1]) / downscale_factor_y / 2 )] = score
+                #fill df with probability at the center of y axis, consider rezizing with args_downscale_factor_y
+                df_detections.iloc[int(frame_index /time_scale_factor), int((b[3] + b[1]) / args_downscale_factor_y / 2 )] = score
     return df_detections
 
 def create_zeroed_df(factor_y, num_frames, height):
@@ -167,6 +171,8 @@ def parse_args(args):
     parser.add_argument('--predict-threshold',  help='If prediction is below this value, bounding box is filtered', default=0.4, type=float)
     parser.add_argument('--fps',                help='Frames per second in every video', default=20, type=int)
     parser.add_argument('--skip-existing',      help='Flag if the existing csv files shall be skipped or calculated once again', action='store_true')
+    parser.add_argument('--downscale-factor-y', help='Factor which is used to scale down y axis', default=1, type=int)
+
     return parser.parse_args(args)
 
 if __name__ == '__main__':
