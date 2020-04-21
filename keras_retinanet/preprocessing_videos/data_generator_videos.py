@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import numpy as np
 from random import shuffle
+import math
 
-import keras
+from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
@@ -17,21 +18,23 @@ TOP_PATH = 'C:/Users/Yannick/Google Drive/person_detection/bus_videos/pcds_datas
 LABEL_FILE = 'pcds_dataset_labels_united.csv'
 LABEL_HEADER = ['file_name', 'entering', 'exiting', 'video_type']
 
-FILTER_ROWS = 0 
-FILTER_COLS = 20
+#Factor which indicates how many of the timesteps shall be skipped
+# FILTER_ROWS = 5 means every fifth timestep will be used
+FILTER_ROWS_FACTOR = 2
+FILTER_COLS = 30
 
 np.random.seed(42)
 
 
 def main():
 
-    length_t, length_y = get_lengths(TOP_PATH)
+    length_t, length_y = get_filtered_lengths(TOP_PATH)
     train_file_names, _ = split_files()
 
     filter_cols, filter_rows = get_filters(train_file_names)
 
     gen = Generator_CSVS(length_t, length_y,
-                         train_file_names, filter_cols, 
+                         train_file_names, filter_cols,
                          filter_rows, batch_size=16)
 
     for _ in range(5):
@@ -82,9 +85,9 @@ class Generator_CSVS(keras.utils.Sequence):
             raise FileNotFoundError('No matching csv for existing label, or scaling went wrong')
 
         df_x = clean_ends(df_x, del_leading=self.filter_cols, del_trailing=self.filter_cols)
-
-        assert df_x.shape[0] == (self.length_t - 2 * self.filter_rows)\
-           and df_x.shape[1] == (self.length_y - 2 * self.filter_cols)
+        df_x = filter_rows(df_x, self.filter_rows)
+        assert df_x.shape[0] == (self.length_t)\
+           and df_x.shape[1] == (self.length_y)
 
         return df_x, label
 
@@ -98,12 +101,7 @@ class Generator_CSVS(keras.utils.Sequence):
     def datagen(self):
 
         '''
-        Datagenerator for bus video csv files
-        Arguments: 
-            length_t: 
-            length_y: 
-            file_names: 
-            batch_size:
+        Datagenerator for bus video csv
 
         yields: Batch of samples
         '''
@@ -111,8 +109,8 @@ class Generator_CSVS(keras.utils.Sequence):
         batch_index = 0
 
         x_batch = np.zeros(shape=(self.batch_size,
-                                self.length_t - self.filter_rows * 2,
-                                self.length_y - self.filter_cols * 2 ))
+                                self.length_t,
+                                self.length_y))
         y_batch = np.zeros(shape=(self.batch_size, 1))
 
         while True:
@@ -172,19 +170,19 @@ def check_for_index_col(top_path):
 def create_datagen(top_path=TOP_PATH): 
     '''
     '''
-    length_t, length_y = get_lengths(top_path)
+    length_t, length_y = get_filtered_lengths(top_path)
 
     train_file_names, test_file_names = split_files()
 
-    filter_cols, filter_rows = get_filters(train_file_names)
+    filter_cols, filter_rows_factor = get_filters(train_file_names)
 
     gen_train = Generator_CSVS(length_t, length_y,
                                train_file_names, filter_cols, 
-                               filter_rows, batch_size=16)
+                               filter_rows_factor, batch_size=16)
 
     gen_test = Generator_CSVS(length_t, length_y,
                               test_file_names, filter_cols, 
-                              filter_rows, batch_size=16)
+                              filter_rows_factor, batch_size=16)
 
     return gen_train, gen_test
 
@@ -199,7 +197,7 @@ def split_files():
 
 def get_filters(file_names): 
     #TODO: Implement. Now dummy function
-    return FILTER_COLS, FILTER_ROWS
+    return FILTER_COLS, FILTER_ROWS_FACTOR
 
 
 def get_entering(file_name, df_y): 
@@ -261,6 +259,13 @@ def clean_ends(df, del_leading=5, del_trailing=5):
     
     return df
 
+def filter_rows(df, filter_rows): 
+    '''
+    '''
+    return df.iloc[::filter_rows, :]
+
+
+    
 
 def get_lengths(top_path=TOP_PATH):
     '''
@@ -278,12 +283,15 @@ def get_lengths(top_path=TOP_PATH):
                 else: 
                     return df.shape[0], df.shape[1]
 
-def get_cleaned_lengths(filter_cols=FILTER_COLS, filter_rows=FILTER_ROWS, **kwargs):
+def get_filtered_lengths(top_path=TOP_PATH,
+                         filter_cols=FILTER_COLS,
+                         filter_rows=FILTER_ROWS_FACTOR):
     '''
+    
     '''
 
-    timestep_num, feature_num = get_lengths(**kwargs)
-    return timestep_num - (2 * filter_rows), feature_num - (2 * filter_cols)
+    timestep_num, feature_num = get_lengths(top_path)
+    return math.ceil(timestep_num / filter_rows), feature_num - (2 * filter_cols)
 
 if __name__ == '__main__':
     main()
