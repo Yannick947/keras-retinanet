@@ -22,37 +22,42 @@ def main():
     datagen_train, datagen_test = dgv.create_datagen()
     
     hp_domains, metrics = create_hyperparams_domains()
-    with tf.summary.create_file_writer(LOGDIR_TOP).as_default():
-         hp.hparams_config(
-            hparams=list(hp_domains.values()),
-            metrics=metrics)
+
 
     for num_units in hp_domains['num_units'].domain.values:
         for regularizer in (hp_domains['regularizer'].domain.min_value, hp_domains['regularizer'].domain.max_value):
             for activation in hp_domains['activation'].domain.values:
                 logdir = os.path.join(LOGDIR_TOP + strftime("%Y_%b_%d_%H_%M_%S", gmtime()))
+                with tf.summary.create_file_writer(logdir).as_default():
+                    hp.hparams_config(
+                        hparams=list(hp_domains.values()),
+                        metrics=metrics)
+                    hparams = {
+                                    'num_units'             : num_units,
+                                    'regularizer'           : regularizer,
+                                    'activation'            : activation,
+                                }
+                
+                    lstm_model = create_lstm(timestep_num, feature_num, hparams)
+                    history, model = train(lstm_model, datagen_train, logdir, hparams, datagen_test)
 
-                hparams = {
-                    'num_units'             : num_units,
-                    'regularizer'           : regularizer,
-                    'activation'            : activation,
-                }
+                    METRICS = ['val_loss', 'loss']
 
-                lstm_model = create_lstm(timestep_num, feature_num, hparams)
-                history, model = train(lstm_model, datagen_train, logdir, hparams, datagen_test)
-
-    # plot(history)
-    # visualize_predictions(model, datagen_test)
+                    for key in METRICS: 
+                        if key in history.history.keys():
+                            tf.summary.scalar(key, min(history.history[key]), step=1)
+                # plot(history)
+                # visualize_predictions(model, datagen_test)
 
 
 def create_hyperparams_domains(): 
     '''
     '''
-    HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([10, 40, 60, 100]))
+    HP_NUM_UNITS = hp.HParam('num_units', hp.Discrete([2, 4, 8, 32]))
     HP_DROPOUT = hp.HParam('dropout', hp.RealInterval(0.1, 0.2))
     HP_OPTIMIZER = hp.HParam('optimizer', hp.Discrete(['adam', 'sgd']))
-    HP_ACTIVATION_KERNEL =  hp.HParam('activation', hp.Discrete(['relu', 'sigmoid']))
-    HP_KERNEL_REGULARIZER = hp.HParam('num_units', hp.RealInterval(0.0, 0.8))
+    HP_ACTIVATION_KERNEL =  hp.HParam('activation', hp.Discrete(['sigmoid']))
+    HP_KERNEL_REGULARIZER = hp.HParam('num_units', hp.RealInterval(0.05, 0.2))
 
     HP_TRAIN_LOSS = hp.Metric("loss", group="train", display_name="training loss")
     HP_VAL_LOSS   = hp.Metric("val_loss", group="validation", display_name="validation loss")
@@ -72,7 +77,11 @@ def create_callbacks(logdir, hparams=None):
     '''
     '''
     callbacks = list()
-    callbacks.append(tf.keras.callbacks.TensorBoard(logdir))
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir                = logdir,
+            update_freq            = 16
+        )
+    callbacks.append(tensorboard_callback)
     callbacks.append(hp.KerasCallback(logdir, hparams))
 
     return callbacks
