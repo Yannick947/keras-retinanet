@@ -5,9 +5,6 @@ import csv
 import time
 from zipfile import ZipFile
 
-# Data has to be downloaded manually to process it, probably doesnt work on linux due to slashes
-
-CRAWL_DIR = './'
 PCDS_DIR = 'C:/Users/Yannick/OneDrive/Dokumente/Python/PCDS_videos/downloads/'
 DESTINATION_DIR = 'C:/Users/Yannick/OneDrive/Dokumente/Python/PCDS_videos/pcds_dataset/'
 
@@ -25,15 +22,6 @@ def main():
                 destination_path = get_destination(full_path_file, DESTINATION_DIR)
                 move_files(full_path_file, DESTINATION_DIR, destination_path, replace_existings=True)
 
-def set_crawl_dir(dir):
-    '''
-    Set the directory where shall be crawled
-    
-    Arguments: 
-        dir: Directory which shall be set
-    '''
-    global CRAWL_DIR
-    CRAWL_DIR = dir 
 
 def extract_zip(file_name, file_dir):
     '''
@@ -60,7 +48,7 @@ def remove_depth_videos(video_dir):
             
 def move_files(full_path_file, destination_dir, destination_path, filter_datatypes=None, replace_existings=False):
     '''
-    TODO: !!!replace_existings doesnt work yet!!! has to be implemented
+    TODO: !!!replace_existings doesnt work yet, everything is replaced!!! has to be implemented
     
     Move files to another folder. Folder structure
     remains the same and videos stay at their place, label files are
@@ -75,9 +63,9 @@ def move_files(full_path_file, destination_dir, destination_path, filter_datatyp
                            be replaced
     '''
 
-    existing_files = list()
+    existing_files = []
     for _, _, files in os.walk(destination_dir):
-        existing_files = existing_files.extend(files)
+        existing_files.extend(files)
 
     if (filter_datatypes == None) or (any(filter_d in full_path_file for filter_d in filter_datatypes)):
         os.replace(full_path_file, destination_path)
@@ -124,6 +112,6 @@ def find_nth(string, search, n):
     return start
 
 if __name__ == "__main__":
- main()
+    main()
 
 

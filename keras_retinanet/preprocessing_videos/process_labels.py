@@ -17,7 +17,6 @@ TOP_PATH = '/content/drive/My Drive/person_detection/bus_videos/pcds_dataset/'
 
 def main():
 
-    print('Has to be tested again when new data is available')
     for file_name in os.listdir(TOP_PATH): 
         if 'label' in file_name and not ('crowd' in file_name) and not (file_name == 'pcds_dataset_labels_united.csv'):
             df_labels = load_labels(TOP_PATH)
@@ -29,10 +28,11 @@ def main():
 
 def unite_labels(top_path, df_labels, labels_singlefile):
     '''
-    Add content of all existing label.txt files to the pcds_dataset_labels_united.csv.csv file
+    Add content of all existing label.txt files to the pcds_dataset_labels_united.csv file
+    and removes duplicates
 
     Arguments: 
-        top_path: Path where pcds_dataset_labels_united.csv.csv must be placed and where shall 
+        top_path: Path where pcds_dataset_labels_united.csv must be placed and where shall 
         be searched for label.txt files 
     '''
 

@@ -87,7 +87,7 @@ def load_model(filepath, backbone_name='resnet50'):
     return keras.models.load_model(filepath, custom_objects=backbone(backbone_name).custom_objects)
 
 
-def convert_model(model, nms=True, class_specific_filter=True, anchor_params=None, nms_threshold=0.5):
+def convert_model(model, nms=True, class_specific_filter=True, anchor_params=None, nms_threshold=0.35):
     """ Converts a training model to an inference model.
 
     Args

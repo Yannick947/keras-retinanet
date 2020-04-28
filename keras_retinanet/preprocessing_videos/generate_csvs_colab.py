@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np 
 import sys
+import random
 
 import keras
 import tensorflow as tf
@@ -29,12 +30,13 @@ def main(args=None):
         upper_video_length = 530
     else: 
         lower_video_length, upper_video_length = get_video_stats(TOP_PATH,
-                                                                 lower_quantile=0.1,
-                                                                 upper_quantile=0.7,
+                                                                 lower_quantile=0.0,
+                                                                 upper_quantile=0.8,
                                                                  print_stats=True)
 
     keras.backend.tensorflow_backend.set_session(get_session())
     model = models.load_model(MODEL_PATH, backbone_name=BACKBONE)
+    
     if not 'resnet50_vanilla.h5' in MODEL_PATH:
         model = models.convert_model(model, nms_threshold = args.nms_threshold)
 
@@ -148,7 +150,7 @@ def create_zeroed_df(args, num_frames, vcapture, filter_upper_frames):
     height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     if args.fps == None:
-        df_detections_length = filter_upper_frames
+        df_detections_length = int(filter_upper_frames)
 
     else: 
         print('Care about using fps argument, not tested yet -> trial mode')
@@ -156,15 +158,22 @@ def create_zeroed_df(args, num_frames, vcapture, filter_upper_frames):
 
     return pd.DataFrame(np.zeros(shape=(df_detections_length, int(height / args.downscale_factor_y))))
 
-def get_video_stats(TOP_PATH, lower_quantile, upper_quantile, print_stats=False): 
+def get_video_stats(TOP_PATH, lower_quantile, upper_quantile, print_stats=False, sample_size=100): 
     video_length = pd.Series()
+    file_list = list()
+
     for root, _, files in os.walk(TOP_PATH):
         for file_name in files: 
             if file_name[-4:] == '.avi':
-                video_path = os.path.join(root, file_name)
-                vcapture = cv2.VideoCapture(video_path)
-                video_length = video_length.append(pd.Series(int(vcapture.get(cv2.CAP_PROP_FRAME_COUNT))))
-                vcapture.release()
+                file_list.append(os.path.join(root, file_name))
+
+    random.shuffle(file_list)
+    sampled_list = random.sample(file_list, sample_size)
+
+    for video_path in sampled_list:
+        vcapture = cv2.VideoCapture(video_path)
+        video_length = video_length.append(pd.Series(int(vcapture.get(cv2.CAP_PROP_FRAME_COUNT))))
+        vcapture.release()
 
     if print_stats == True: 
         print('Std of num video frames: ', video_length.std())
