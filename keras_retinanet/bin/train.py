@@ -166,25 +166,19 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     
     HP_MIN_SIDE = hp.HParam('image_max_side', hp.IntInterval(1500, 1800))
     HP_MAX_SIDE = hp.HParam('image_min_side', hp.IntInterval(100, 800))
-    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152',
-                                                     'mobilenet128_0.75', 'mobilenet224',
-                                                     'retinanet','densenet', 'vgg16',
-                                                      'vgg19']))
+    HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152', 'mobilenet224', 'retinanet','densenet', 'vgg']))
     HP_FILTER   = hp.HParam('image_filter', hp.IntInterval(0, 1000))
     HP_AUGMENTATION = hp.HParam('augmentation', hp.Discrete(['true', 'false']))
     HP_FREEZEBACKBONE = hp.HParam('backbone_frozen', hp.Discrete(['true', 'false']))
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
     HP_NUMCLASSES = hp.HParam('num_classes', hp.IntInterval(0, 4))
-    HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(1, 30000000000000))
-    # HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'false']))
-    HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0.0, 10.0))
-    HP_VISUAL_AUG_FACTOR = hp.HParam('no_resize', hp.RealInterval(0.0,10.0))
-
+    HP_DATEINT = hp.HParam('date_asint', hp.IntInterval(10000000000000, 30000000000000))
+    HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'flase']))
 
     if args.no_resize: 
-        no_resize_flag = 'true'
+        no_resize = 'true'
     else: 
-        no_resize_flag = 'false'
+        no_resize = 'false'
     
     if args.config: 
         anchors_opti = 'true'
@@ -210,11 +204,8 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_FREEZEBACKBONE: frozen,
         HP_ANCHOROPTI: anchors_opti,
         HP_NUMCLASSES: args.num_classes,
-        HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
-        HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
-        HP_AUGMENTATION_FACTOR: args.augmentation_factor
-                # HP_NORESIZE: no_resize_flag,
-
+        HP_DATEINT: int(datetime.now().strftime("%Y%m%d%H%M%S")),
+        HP_NORESIZE: no_resize
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
@@ -254,7 +245,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor    = 'loss',
         factor     = 0.1,
-        patience   = 2,  
+        patience   = 3,  #changed to 3, before was 2, to wait more time until change
         verbose    = 1,
         mode       = 'auto',
         min_delta  = 0.0001,
@@ -287,23 +278,22 @@ def create_generators(args, preprocess_image):
     # create random transform generator for augmenting training data
     if args.random_transform:
         transform_generator = random_transform_generator(
-            min_rotation=-0.1 * args.augmentation_factor,
-            max_rotation=0.1 * args.augmentation_factor,
-            min_translation=(-0.1 * args.augmentation_factor, -0.1 * args.augmentation_factor),
-            max_translation=(0.1 * args.augmentation_factor, 0.1 * args.augmentation_factor),
-            min_shear=-0.1 * args.augmentation_factor,
-            max_shear=0.1 * args.augmentation_factor,
-            min_scaling=(1 - args.augmentation_factor / 10, 1 - args.augmentation_factor / 10),
-            max_scaling=(1 + args.augmentation_factor / 10, 1 + args.augmentation_factor / 10),
+            min_rotation=-0.1,
+            max_rotation=0.1,
+            min_translation=(-0.1, -0.1),
+            max_translation=(0.1, 0.1),
+            min_shear=-0.1,
+            max_shear=0.1,
+            min_scaling=(0.9, 0.9),
+            max_scaling=(1.1, 1.1),
             flip_x_chance=0.5,
-            #Does make not that much sense for humans
-            # flip_y_chance=0.5,
+            flip_y_chance=0.5,
         )
         visual_effect_generator = random_visual_effect_generator(
-            contrast_range=(1 - args.visual_aug_factor / 10, 1 + args.visual_aug_factor / 10),
-            brightness_range=(-.1 * args.visual_aug_factor, .1 * args.visual_aug_factor),
-            hue_range=(-0.05 * args.visual_aug_factor, 0.05 * args.visual_aug_factor),
-            saturation_range=(1 - args.visual_aug_factor / 20, 1 + args.visual_aug_factor / 20)
+            contrast_range=(0.9, 1.1),
+            brightness_range=(-.1, .1),
+            hue_range=(-0.05, 0.05),
+            saturation_range=(0.95, 1.05)
         )
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
@@ -497,11 +487,10 @@ def parse_args(args):
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
     parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true')
     parser.add_argument('--filtered-above',   help='The minimum shape in the data set for images in both dimensions', type=int)
-    parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=1)
+    parser.add_argument('--num-classes',      help='The number of classes provided, pedestrian is always included', type=int, default=4)
     parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
-    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=float, default=1.0)
-    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ', type=float, default=1.0)
 
+  
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
     parser.add_argument('--workers',          help='Number of generator workers.', type=int, default=1)
