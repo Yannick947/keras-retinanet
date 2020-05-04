@@ -27,7 +27,7 @@ def main(args=None):
 
     if args.static_filter:
         lower_video_length = 300
-        upper_video_length = 530
+        upper_video_length = 650
     else: 
         lower_video_length, upper_video_length = get_video_stats(TOP_PATH,
                                                                  lower_quantile=0.0,
