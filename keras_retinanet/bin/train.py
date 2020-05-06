@@ -157,7 +157,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
             update_freq            = 'batch',
             histogram_freq         = 0,
             batch_size             = args.batch_size,
-            write_graph            = True,
+            write_graph            = False,
             write_grads            = False,
             write_images           = False,
             embeddings_freq        = 0,
@@ -226,7 +226,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
             verbose=1,
             save_best_only=True,
             monitor="mAP",
-            # mode='max'
+            mode='max'
         )
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
@@ -234,7 +234,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor    = 'loss',
         factor     = 0.1,
-        patience   = 2,
+        patience   = 3,
         verbose    = 1,
         mode       = 'auto',
         min_delta  = 0.0001,
