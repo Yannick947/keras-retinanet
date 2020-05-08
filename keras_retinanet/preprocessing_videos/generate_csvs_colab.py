@@ -138,7 +138,13 @@ def fill_pred_image(model, df_detections, vcapture, args):
                 try: 
                     t = int(frame_index / time_scale_factor)
                     y = int((b[3] + b[1]) / args.downscale_factor_y / 2)
-                    df_detections.iloc[t, y] = score
+
+                    #If position already contains a pixel due to downscaling, search new position along movement axis
+                    if df_detections.iloc[t, y] == 0: 
+                        df_detections.iloc[t, y] = score
+                    else: 
+                        t, y = get_destination(df_detections, (t, y))
+                        df_detections.iloc[t,y] = score
                 except: 
                     print('Detection out of bounds, t: {}, y: {}'.format(t, y))
 
@@ -188,6 +194,36 @@ def csv_exists(video_path, file_name):
     video_folder = video_path[:video_path.find(file_name)]
     existing_files = os.listdir(video_folder)
     return file_name[0:-4] + '.csv' in existing_files
+
+def get_destination(df, old_position): 
+    '''Get new destination for pixel around the old position
+
+    Arguments: 
+        df: Dataframe with current pixels
+        old_position: position where pixel would be placed initially
+
+    returns t and y coordinate for new position of pixel
+    '''
+    #Directions in which pixel can be moved
+    directions = [(-1,-1), (1, 1)] 
+
+    for _ in range(len(directions)):
+        direction = random.sample(directions, 1)[0]
+
+        x = old_position[0] + direction[0]
+        y = old_position[1] + direction[1]
+        new_pos = (x, y)
+
+        if (new_pos[0] < 0) or (new_pos[0] >= df.shape[0])\
+        or (new_pos[1] < 0) or (new_pos[1] >= df.shape[1]):
+            continue
+
+        if df.iloc[new_pos[0], new_pos[1]] == 0:
+            return new_pos[0], new_pos[1]
+
+    #if all position are already a detection pixel, return the old value
+    return old_position
+
 
 def parse_args(args):
     """ Parse the arguments.
