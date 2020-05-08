@@ -177,7 +177,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_NORESIZE = hp.HParam('no_resize', hp.Discrete(['true', 'false']))
     HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0.0, 10.0))
     HP_VISUAL_AUG_FACTOR = hp.HParam('no_resize', hp.RealInterval(0.0,10.0))
-
+    HP_NUM_TRAIN_IMAGES = hp.HParam('num_train_imgs', hp.IntInterval(1, 10000))
 
     if args.no_resize: 
         no_resize_flag = 'true'
@@ -210,6 +210,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
         HP_AUGMENTATION_FACTOR: args.augmentation_factor,
         HP_NORESIZE: no_resize_flag,
+        HP_NUM_TRAIN_IMAGES: args.num_train_imgs,
 
     }
 
@@ -495,7 +496,7 @@ def parse_args(args):
     parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
     parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=float, default=1.0)
     parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ', type=float, default=1.0)
-
+    parser.add_argument('--num-train-imgs',   help='The number of training images which were used', type=int, default=100)
     # Fit generator arguments
     parser.add_argument('--multiprocessing',  help='Use multiprocessing in fit_generator.', action='store_true')
     parser.add_argument('--workers',          help='Number of generator workers.', type=int, default=1)
