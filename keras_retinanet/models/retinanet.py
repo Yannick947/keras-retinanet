@@ -290,6 +290,7 @@ def retinanet_bbox(
     class_specific_filter = True,
     name                  = 'retinanet-bbox',
     anchor_params         = None,
+    custom_nms_theshold   = 0.5, 
     **kwargs
 ):
     """ Construct a RetinaNet model on top of a backbone and adds convenience functions to output boxes directly.
@@ -345,7 +346,8 @@ def retinanet_bbox(
     detections = layers.FilterDetections(
         nms                   = nms,
         class_specific_filter = class_specific_filter,
-        name                  = 'filtered_detections'
+        name                  = 'filtered_detections', 
+        custom_nms_theshold   = custom_nms_theshold,
     )([boxes, classification] + other)
 
     # construct the model

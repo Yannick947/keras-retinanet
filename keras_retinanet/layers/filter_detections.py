@@ -124,6 +124,7 @@ class FilterDetections(keras.layers.Layer):
         score_threshold       = 0.05,
         max_detections        = 300,
         parallel_iterations   = 32,
+        custom_nms_theshold   = None, 
         **kwargs
     ):
         """ Filters detections using score threshold, NMS and selecting the top-k detections.
@@ -138,10 +139,15 @@ class FilterDetections(keras.layers.Layer):
         """
         self.nms                   = nms
         self.class_specific_filter = class_specific_filter
-        self.nms_threshold         = nms_threshold
         self.score_threshold       = score_threshold
         self.max_detections        = max_detections
         self.parallel_iterations   = parallel_iterations
+
+        if custom_nms_theshold == None:
+            self.nms_threshold         = nms_threshold
+        else: 
+            self.nms_threshold = custom_nms_theshold
+            
         super(FilterDetections, self).__init__(**kwargs)
 
     def call(self, inputs, **kwargs):
