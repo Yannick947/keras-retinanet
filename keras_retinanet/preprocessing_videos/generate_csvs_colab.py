@@ -15,7 +15,6 @@ from .. import models
 from ..utils.image import read_image_bgr, preprocess_image, resize_image
 
 TOP_PATH = '../bus_videos/pcds_dataset'
-MODEL_PATH = './snapshots/resnet50_vanilla.h5' 
 BACKBONE = 'resnet50'
 
 def main(args=None):
@@ -26,8 +25,8 @@ def main(args=None):
     args = parse_args(args)
 
     if args.static_filter:
-        lower_video_length = 300
-        upper_video_length = 650
+        lower_video_length = 100
+        upper_video_length = 650 
     else: 
         lower_video_length, upper_video_length = get_video_stats(TOP_PATH,
                                                                  lower_quantile=0.0,
@@ -35,10 +34,10 @@ def main(args=None):
                                                                  print_stats=True)
 
     keras.backend.tensorflow_backend.set_session(get_session())
-    model = models.load_model(MODEL_PATH, backbone_name=BACKBONE)
+    model = models.load_model(args.model_path, backbone_name=BACKBONE)
     
-    if not 'resnet50_vanilla.h5' in MODEL_PATH:
-        model = models.convert_model(model, nms_threshold = args.nms_threshold)
+    if not 'resnet50_vanilla.h5' in args.model_path:
+        model = models.convert_model(model, custom_nms_theshold = args.nms_threshold)
 
     csv_counter = generate_csvs(TOP_PATH, model, args,
                                 filter_lower_frames=lower_video_length,
@@ -200,7 +199,7 @@ def parse_args(args):
     parser.add_argument('--fps',                help='Frames per second in every video', default=None, type=int)
     parser.add_argument('--skip-existing',      help='Flag if the existing csv files shall be skipped or calculated once again', action='store_true')
     parser.add_argument('--downscale-factor-y', help='Factor which is used to scale down y axis', default=1, type=int)
-
+    parser.add_argument('--model-path',         help='Path to the model which shall be used for inference')
     return parser.parse_args(args)
 
 if __name__ == '__main__':
