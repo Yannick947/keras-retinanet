@@ -1,8 +1,8 @@
 import os
 from keras_retinanet.preprocessing_videos.process_download import move_files
 
-PCDS_DIR = '/content/drive/My Drive/person_detection/bus_videos/pcds_dataset/'
-DESTINATION_DIR = '/content/drive/My Drive/person_detection/bus_videos/pcds_dataset_detected/'
+PCDS_DIR = '/content/drive/My Drive/person_detection/pcds_dataset_detections/pcds_dataset/'
+DESTINATION_DIR = '/content/drive/My Drive/person_detection/pcds_dataset_detections/pcds_dataset_detected/'
 
 def main(): 
     for root, _, files in os.walk(PCDS_DIR):

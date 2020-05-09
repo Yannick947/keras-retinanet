@@ -14,7 +14,7 @@ import cv2
 from .. import models
 from ..utils.image import read_image_bgr, preprocess_image, resize_image
 
-TOP_PATH = '../bus_videos/pcds_dataset'
+TOP_PATH = '../pcds_dataset_detections/pcds_dataset'
 BACKBONE = 'resnet50'
 
 def main(args=None):

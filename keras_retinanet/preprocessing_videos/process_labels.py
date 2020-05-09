@@ -13,7 +13,7 @@ VideoType: the video type. There are 4 video types represented by the index (0: 
 '''
 
 HEADER = ['file_name', 'entering', 'exiting', 'video_type']
-TOP_PATH = '/content/drive/My Drive/person_detection/bus_videos/pcds_dataset/'
+TOP_PATH = '/content/drive/My Drive/person_detection/pcds_dataset_detections/pcds_dataset/'
 
 def main():
 
