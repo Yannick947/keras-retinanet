@@ -11,7 +11,7 @@ THRESH = 0.6
 TOP_PATH = '/content/drive/My Drive/person_detection/bus_video_showcases/'  
 FPS = 20
 
-def run_detection_video(video_path, vcapture, vwriter, num_frames, THRESH=THRESH):
+def run_detection_video(video_path, vcapture, vwriter, num_frames, model, THRESH=THRESH):
     frame_index = 0
     success = True
     start = time.time()
@@ -54,7 +54,7 @@ def run_detection_video(video_path, vcapture, vwriter, num_frames, THRESH=THRESH
     print("Total Time: ", end - start)
 
 
-def create_showcase_videos(video_showcases, video_path_parent=TOP_PATH, THRESH=0.55, fps=FPS):
+def create_showcase_videos(video_showcases, model, video_path_parent=TOP_PATH, THRESH=0.55, fps=FPS):
     ''' Create a video showcase and save to given folder
     Arguments: 
         video_showcases: List of showcases to consider
@@ -75,4 +75,4 @@ def create_showcase_videos(video_showcases, video_path_parent=TOP_PATH, THRESH=0
 
         vwriter = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))        
         num_frames = int(vcapture.get(cv2.CAP_PROP_FRAME_COUNT))
-        run_detection_video(video_path, vcapture, vwriter, num_frames)
+        run_detection_video(video_path, vcapture, vwriter, num_frames, model)
