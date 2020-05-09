@@ -494,8 +494,8 @@ def parse_args(args):
     parser.add_argument('--weighted-average', help='Compute the mAP using the weighted average of precisions among classes.', action='store_true')
     parser.add_argument('--compute-val-loss', help='Compute validation loss during training', dest='compute_val_loss', action='store_true')
     parser.add_argument('--num-trainer',      help='The number of the trainer notebook in colab', type=int, default=0)
-    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done, values >1 are more augmentation', type=float, default=1.0)
-    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values ', type=float, default=1.0)
+    parser.add_argument('--augmentation-factor',help='The factor how much image augmentation will be done,big values mean more augmentation', type=float, default=1.0)
+    parser.add_argument('--visual-aug-factor', help='Visual augmentation factor, high values mean more augmentation, 0 means 0 visual augmentation', type=float, default=1.0)
     parser.add_argument('--num-train-imgs',   help='The number of training images which were used', type=int, default=100)
     
     # Fit generator arguments
