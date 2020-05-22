@@ -178,6 +178,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_AUGMENTATION_FACTOR = hp.HParam('augmentation_factor', hp.RealInterval(0.0, 10.0))
     HP_VISUAL_AUG_FACTOR = hp.HParam('visual_aug_factor', hp.RealInterval(0.0,10.0))
     HP_NUM_TRAIN_IMAGES = hp.HParam('num_train_imgs', hp.IntInterval(1, 10000))
+    HP_PRETRAINED_ON = hp.HParam('pretrained_on', hp.Discrete(['Wider Person', 'ImageNet', 'Coco']))
 
     if args.no_resize: 
         no_resize_flag = 'true'
@@ -199,19 +200,28 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     else: 
         aug = 'false'
 
-    hparams = {
-        HP_MIN_SIDE: args.image_min_side,
-        HP_MAX_SIDE: args.image_max_side,
-        HP_BACKBONE: args.backbone,
-        HP_AUGMENTATION: aug,
-        HP_FREEZEBACKBONE: frozen,
-        HP_ANCHOROPTI: anchors_opti,
-        HP_DATEINT: int(datetime.now().strftime("%m%d%H")),
-        HP_VISUAL_AUG_FACTOR: args.visual_aug_factor, 
-        HP_AUGMENTATION_FACTOR: args.augmentation_factor,
-        HP_NORESIZE: no_resize_flag,
-        HP_NUM_TRAIN_IMAGES: args.num_train_imgs,
+    if args.weights is not None: 
+        pretrained = 'coco'
 
+    elif args.snapshot is not None: 
+        pretrained = 'Wider Person'
+
+    else: 
+        pretrained = 'Imagenet'
+
+    hparams = {
+        HP_MIN_SIDE             : args.image_min_side,
+        HP_MAX_SIDE             : args.image_max_side,
+        HP_BACKBONE             : args.backbone,
+        HP_AUGMENTATION         : aug,
+        HP_FREEZEBACKBONE       : frozen,
+        HP_ANCHOROPTI           : anchors_opti,
+        HP_DATEINT              : int(datetime.now().strftime("%m%d%H")),
+        HP_VISUAL_AUG_FACTOR    : args.visual_aug_factor, 
+        HP_AUGMENTATION_FACTOR  : args.augmentation_factor,
+        HP_NORESIZE             : no_resize_flag,
+        HP_NUM_TRAIN_IMAGES     : args.num_train_imgs,
+        HP_PRETRAINED_ON        : pretrained,
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
