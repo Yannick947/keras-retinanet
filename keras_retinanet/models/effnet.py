@@ -38,8 +38,27 @@ class EfficientNetBackbone(Backbone):
     def download_imagenet(self):
         """ Downloads ImageNet weights and returns path to weights file.
         """
-        from efficientnet.model import BASE_WEIGHTS_PATH
-        from efficientnet.model import WEIGHTS_HASHES
+        BASE_WEIGHTS_PATH = (
+            'https://github.com/Callidior/keras-applications/'
+            'releases/download/efficientnet/')
+        WEIGHTS_HASHES = {
+            'efficientnet-b0': ('e9e877068bd0af75e0a36691e03c072c',
+                                '345255ed8048c2f22c793070a9c1a130'),
+            'efficientnet-b1': ('8f83b9aecab222a9a2480219843049a1',
+                                'b20160ab7b79b7a92897fcb33d52cc61'),
+            'efficientnet-b2': ('b6185fdcd190285d516936c09dceeaa4',
+                                'c6e46333e8cddfa702f4d8b8b6340d70'),
+            'efficientnet-b3': ('b2db0f8aac7c553657abb2cb46dcbfbb',
+                                'e0cf8654fad9d3625190e30d70d0c17d'),
+            'efficientnet-b4': ('ab314d28135fe552e2f9312b31da6926',
+                                'b46702e4754d2022d62897e0618edc7b'),
+            'efficientnet-b5': ('8d60b903aff50b09c6acf8eaba098e09',
+                                '0a839ac36e46552a881f2975aaab442f'),
+            'efficientnet-b6': ('a967457886eac4f5ab44139bdd827920',
+                                '375a35c17ef70d46f9c664b03b4437f2'),
+            'efficientnet-b7': ('e964fd6e26e9a4c144bcb811f2a10f20',
+                                'd55674cc46b805f4382d18bc08ed43c1')
+        }
 
         model_name = 'efficientnet-b' + self.backbone[-1]
         file_name = model_name + '_weights_tf_dim_ordering_tf_kernels_autoaugment_notop.h5'
