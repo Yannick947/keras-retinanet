@@ -26,12 +26,12 @@ class Evaluate(keras.callbacks.Callback):
         self,
         generator,
         iou_threshold=0.5,
-        score_threshold=0.05,
-        max_detections=100,
+        score_threshold=0.5,
+        max_detections=15,
         save_path=None,
         tensorboard=None,
         weighted_average=False,
-        verbose=1
+        verbose=1, 
     ):
         """ Evaluate a given dataset using a given model at the end of every epoch during training.
 
@@ -53,6 +53,7 @@ class Evaluate(keras.callbacks.Callback):
         self.tensorboard     = tensorboard
         self.weighted_average = weighted_average
         self.verbose         = verbose
+        self.maps            = list()
 
         super(Evaluate, self).__init__()
 
@@ -83,16 +84,13 @@ class Evaluate(keras.callbacks.Callback):
         else:
             self.mean_ap = sum(precisions) / sum(x > 0 for x in total_instances)
 
-        if self.tensorboard:
-            import tensorflow as tf
-            if tf.version.VERSION < '2.0.0' and self.tensorboard.writer:
-                summary = tf.Summary()
-                summary_value = summary.value.add()
-                summary_value.simple_value = self.mean_ap
-                summary_value.tag = "mAP"
-                self.tensorboard.writer.add_summary(summary, epoch)
-
+        self.maps.append(self.mean_ap)
         logs['mAP'] = self.mean_ap
+
+        self.max_map = max(self.maps)
+        logs['max_mAP'] = self.max_map
 
         if self.verbose == 1:
             print('mAP: {:.4f}'.format(self.mean_ap))
+        
+
