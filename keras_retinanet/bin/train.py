@@ -167,9 +167,10 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_MIN_SIDE = hp.HParam('image_max_side', hp.IntInterval(1500, 1800))
     HP_MAX_SIDE = hp.HParam('image_min_side', hp.IntInterval(100, 800))
     HP_BACKBONE = hp.HParam('backbone', hp.Discrete(['resnet50', 'resnet152',
-                                                     'mobilenet128_0.75', 'mobilenet224',
+                                                     'mobilenet128_0.75', 'mobilenet224_1.0',
                                                      'retinanet','densenet', 'vgg16',
-                                                      'vgg19']))
+                                                     'vgg19', 'EfficientNetB7', 'EfficientNetB6',
+                                                     'EfficientNet5']))
     HP_AUGMENTATION = hp.HParam('augmentation', hp.Discrete(['true', 'false']))
     HP_FREEZEBACKBONE = hp.HParam('backbone_frozen', hp.Discrete(['true', 'false']))
     HP_ANCHOROPTI = hp.HParam('anchors_optimized', hp.Discrete(['true', 'false']))
@@ -179,6 +180,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     HP_VISUAL_AUG_FACTOR = hp.HParam('visual_aug_factor', hp.RealInterval(0.0,10.0))
     HP_NUM_TRAIN_IMAGES = hp.HParam('num_train_imgs', hp.IntInterval(1, 10000))
     HP_PRETRAINED_ON = hp.HParam('pretrained_on', hp.Discrete(['Wider Person', 'ImageNet', 'Coco']))
+    HP_LR = hp.HParam('learning_rate', hp.RealInterval(1e-6, 1e-3))
 
     if args.no_resize: 
         no_resize_flag = 'true'
@@ -222,6 +224,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         HP_NORESIZE             : no_resize_flag,
         HP_NUM_TRAIN_IMAGES     : args.num_train_imgs,
         HP_PRETRAINED_ON        : pretrained,
+        HP_LR                   : args.lr,
     }
 
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
@@ -260,13 +263,13 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
 
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor    = 'loss',
-        factor     = 0.1,
-        patience   = 2,  
+        factor     = 0.05,
+        patience   = 1,  
         verbose    = 1,
         mode       = 'auto',
-        min_delta  = 0.0001,
-        cooldown   = 0,
-        min_lr     = 0
+        min_delta  = 0.000001,
+        cooldown   = 1,
+        min_lr     = 0.0000001
     ))
 
     if args.tensorboard_dir:
@@ -566,7 +569,7 @@ def main(args=None):
         )
 
     # print model summary
-    print(model.summary())
+    print('\nNumber of params for this model: ', model.count_params())
 
     # this lets the generator compute backbone layer shapes using the actual backbone model
     if 'vgg' in args.backbone or 'densenet' in args.backbone:
