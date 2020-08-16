@@ -9,7 +9,7 @@ def main():
         for file_name in files: 
             full_path_file = os.path.join(root, file_name)
             destination_path = get_destination(full_path_file, DESTINATION_DIR, file_name)
-            move_files(full_path_file, DESTINATION_DIR, destination_path, filter_datatypes=['.csv'])
+            move_files(full_path_file, DESTINATION_DIR, destination_path, filter_datatypes=['.npy', '.csv'])
 
 
 def get_destination(full_path_file, destination_dir, file_name):

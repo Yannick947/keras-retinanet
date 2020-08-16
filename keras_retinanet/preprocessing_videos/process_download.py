@@ -5,8 +5,8 @@ import csv
 import time
 from zipfile import ZipFile
 
-PCDS_DIR = 'C:/Users/Yannick/OneDrive/Dokumente/Python/PCDS_videos/downloads/'
-DESTINATION_DIR = 'C:/Users/Yannick/OneDrive/Dokumente/Python/PCDS_videos/pcds_dataset/'
+PCDS_DIR = 'E:/pcds_downloads/'
+DESTINATION_DIR = 'E:/pcds_dataset/'
 
 def main(): 
     for file_name in os.listdir(PCDS_DIR):
@@ -20,7 +20,7 @@ def main():
 
                 #Get destination path for file and move it
                 destination_path = get_destination(full_path_file, DESTINATION_DIR)
-                move_files(full_path_file, DESTINATION_DIR, destination_path, replace_existings=True)
+                move_files(full_path_file, DESTINATION_DIR, destination_path)
 
 
 def extract_zip(file_name, file_dir):
@@ -29,8 +29,9 @@ def extract_zip(file_name, file_dir):
     '''
 
     if file_name[-4:] == '.zip':
-        with ZipFile(file_dir + file_name, 'r') as zipObj:
-            zipObj.extractall(file_dir + file_name[0:-4])
+        with ZipFile(os.path.join(file_dir, file_name), 'r') as zipObj:
+            zipObj.extractall(os.path.join(file_dir, file_name[0:-4]))
+
 
 def remove_depth_videos(video_dir):
     '''
@@ -46,10 +47,8 @@ def remove_depth_videos(video_dir):
                 os.remove(root + '/' + name.replace('\\','/'))
                 print('Removed: ', name)
             
-def move_files(full_path_file, destination_dir, destination_path, filter_datatypes=None, replace_existings=False):
+def move_files(full_path_file, destination_dir, destination_path, filter_datatypes=None):
     '''
-    TODO: !!!replace_existings doesnt work yet, everything is replaced!!! has to be implemented
-    
     Move files to another folder. Folder structure
     remains the same and videos stay at their place, label files are
     placed at the destination directory. 
@@ -58,9 +57,8 @@ def move_files(full_path_file, destination_dir, destination_path, filter_datatyp
         full_path_file: Path to the file which shall be moved
         destination_dir: Directory where files shall be placed in 
         destination_path: Exact path where file shall be placed including the name of the file
-        filter_datatypes: !!List!! of datatypes which shall be considered (e.g '.csv')
-        replace_existings: Boolean which indicates if existing files in destination directory shall
-                           be replaced
+        filter_datatypes: !!List!! of datatypes which shall be considered (e.g '.csv', '.npy')
+
     '''
 
     existing_files = []
@@ -69,6 +67,7 @@ def move_files(full_path_file, destination_dir, destination_path, filter_datatyp
 
     if (filter_datatypes == None) or (any(filter_d in full_path_file for filter_d in filter_datatypes)):
         os.replace(full_path_file, destination_path)
+
 
 def get_destination(full_path_file, destination_dir):
     '''

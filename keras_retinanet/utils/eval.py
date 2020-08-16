@@ -21,9 +21,11 @@ import keras
 import numpy as np
 import os
 import time
-
 import cv2
 import progressbar
+from matplotlib import pyplot as plt
+import matplotlib
+
 assert(callable(progressbar.progressbar)), "Using wrong progressbar module, install 'progressbar2' instead."
 
 
@@ -175,11 +177,6 @@ def evaluate(
     all_annotations    = _get_annotations(generator)
     average_precisions = {}
 
-    # all_detections = pickle.load(open('all_detections.pkl', 'rb'))
-    # all_annotations = pickle.load(open('all_annotations.pkl', 'rb'))
-    # pickle.dump(all_detections, open('all_detections.pkl', 'wb'))
-    # pickle.dump(all_annotations, open('all_annotations.pkl', 'wb'))
-
     # process detections and annotations
     for label in range(generator.num_classes()):
         if not generator.has_label(label):
@@ -233,7 +230,7 @@ def evaluate(
         # compute recall and precision
         recall    = true_positives / num_annotations
         precision = true_positives / np.maximum(true_positives + false_positives, np.finfo(np.float64).eps)
-
+        
         # compute average precision
         average_precision  = _compute_ap(recall, precision)
         average_precisions[label] = average_precision, num_annotations
@@ -241,4 +238,21 @@ def evaluate(
     # inference time
     inference_time = np.sum(all_inferences) / generator.size()
 
+    # plt.clf()
+    # plt.style.use('ggplot')
+    # plt.plot(recall, precision, '.g-', alpha=0.7)
+    # font = {'family':'serif', 'serif': ['computer modern roman']}
+    # plt.rc('font',**font)
+    # plt.xlabel('Recall')
+    # plt.ylabel('Precision')
+    # plt.savefig(os.path.join('./', 'precision_recall{}.png').format(str(average_precisions[0][0])), dpi=1200)
+
+    # matplotlib.use("pgf")
+    # matplotlib.rcParams.update({
+    #     "pgf.texsystem": "pdflatex",
+    #     'font.family': 'serif',
+    #     'text.usetex': True,
+    #     'pgf.rcfonts': False,
+    # })
+    # plt.savefig(f'./tensorboard_pcds/{str(average_precisions[0][0])}.pgf')
     return average_precisions, inference_time

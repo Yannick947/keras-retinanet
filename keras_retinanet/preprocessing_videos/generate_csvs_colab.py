@@ -25,8 +25,8 @@ def main(args=None):
     args = parse_args(args)
 
     if args.static_filter:
-        lower_video_length = 100
-        upper_video_length = 650 
+        lower_video_length = 0
+        upper_video_length = 700 
     else: 
         lower_video_length, upper_video_length = get_video_stats(TOP_PATH,
                                                                  lower_quantile=0.0,
@@ -36,7 +36,7 @@ def main(args=None):
     keras.backend.tensorflow_backend.set_session(get_session())
     model = models.load_model(args.model_path, backbone_name=BACKBONE)
     
-    if not 'resnet50_vanilla.h5' in args.model_path:
+    if not 'vanilla.h5' in args.model_path:
         model = models.convert_model(model, custom_nms_theshold = args.nms_threshold)
 
     csv_counter = generate_csvs(TOP_PATH, model, args,
@@ -46,6 +46,8 @@ def main(args=None):
 
 
 def print_csv_stats(csv_counter, lower_quantile, upper_quantile):
+    """Print some stats about the csv files
+    """
     video_number = 0
     for _, _, files in os.walk(TOP_PATH):
         video_number += len([i for i in files if i[-4:] == '.avi'])
@@ -58,12 +60,16 @@ def print_csv_stats(csv_counter, lower_quantile, upper_quantile):
 
 
 def get_session():
+    """ Get a tf1 session
+    """
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     return tf.compat.v1.Session(config=config)
 
 
 def generate_csvs(TOP_PATH, model, args, **kwargs):
+    """ Generate csv files from videos by predcitions of a model
+    """
     csv_counter = 0
     for root, _, files in os.walk(TOP_PATH):
         for file_name in files: 
@@ -73,9 +79,9 @@ def generate_csvs(TOP_PATH, model, args, **kwargs):
 
 
 def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upper_frames=1000):
-
+    """ Generate the csv files by passing videos to a model
+    """
     video_path = os.path.join(root, file_name)
-
     if args.skip_existing and csv_exists(video_path, file_name): 
         print('Skip: ', file_name, ' because csv output already exists.')
         return 0
@@ -87,23 +93,29 @@ def generate_csv(root, file_name, model, args, filter_lower_frames=0, filter_upp
         print('Skip: ', file_name, ' because its too long or short.')
         return 0
 
-    #create empty df for predictions.
+    #create empty arrs for predictions.
+    detections_y = create_zeroed_array(args, num_frames, vcapture, filter_upper_frames)
+    detections_x = create_zeroed_array(args, num_frames, vcapture, filter_upper_frames)
 
-    df_detections = create_zeroed_df(args, num_frames, vcapture, filter_upper_frames)
-
-    #Fill df with predictions and save to csv
-    df_detections = fill_pred_image(model, df_detections, vcapture, args)
-    df_detections.to_csv(video_path [0:-4] + '.csv', header=None, index=None)
-
-    print('Finished video and saved detections to: ', video_path [0:-4] + '.csv')
+    #Fill arrs with predictions and save to csv
+    detections_x, detections_y = fill_pred_image(model, detections_x, detections_y, vcapture, args)
+    
+    stacked_arr = np.stack([detections_x, detections_y], axis=-1, out=None)
+    np.save(video_path[0:-4], stacked_arr)
+    
+    print('Finished video and saved detections to: ', video_path [0:-4]  + '.npy')
     vcapture.release()
     return 1
 
 
-def fill_pred_image(model, df_detections, vcapture, args):
+def fill_pred_image(model, detections_x, detections_y, vcapture, args):
+    """ Fill an array with predictions for time and place of a model 
+    """
     success = True
     frame_index = 0
     frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
+    height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(vcapture.get(cv2.CAP_PROP_FRAME_WIDTH))
 
     if args.fps: 
         time_scale_factor = int(frame_rate / args.fps)
@@ -134,34 +146,39 @@ def fill_pred_image(model, df_detections, vcapture, args):
 
                 b = box.astype(int)
 
-                #fill df with probability at the center of y axis, consider rezizing with args_downscale_factor_y
+                #fill arr with probability at the center of y axis, consider rezizing with args_downscale_factor_y
                 try: 
                     t = int(frame_index / time_scale_factor)
+                    x = int((b[0] + b[2]) * (height / width) / args.downscale_factor_y / 2 )
                     y = int((b[3] + b[1]) / args.downscale_factor_y / 2)
 
                     #If position already contains a pixel due to downscaling, search new position along movement axis
-                    if df_detections.iloc[t, y] == 0: 
-                        df_detections.iloc[t, y] = score
+                    if detections_y[t, y] == 0: 
+                        detections_y[t, y] = score
+                        detections_x[t, x] = score
+
                     else: 
-                        t, y = get_destination(df_detections, (t, y))
-                        df_detections.iloc[t,y] = score
+                        t, y = get_destination(detections_y, (t, y), axis='y')
+                        t, x = get_destination(detections_x, (t, x), axis='x')
+                        detections_y[t, y] = score
+                        detections_x[t, x] = score
                 except: 
-                    print('Detection out of bounds, t: {}, y: {}'.format(t, y))
+                    print('Detection out of bounds, t: {}, y: {}, x: {}'.format(t, y, x))
 
-    return df_detections
+    return detections_y, detections_x
 
-def create_zeroed_df(args, num_frames, vcapture, filter_upper_frames):
+def create_zeroed_array(args, num_frames, vcapture, filter_upper_frames):
     frame_rate = int(vcapture.get(cv2.CAP_PROP_FPS))
     height = int(vcapture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     if args.fps == None:
-        df_detections_length = int(filter_upper_frames)
+        detections_y_length = int(filter_upper_frames)
 
     else: 
         print('Care about using fps argument, not tested yet -> trial mode')
-        df_detections_length = int(filter_upper_frames * args.fps / frame_rate)
+        detections_y_length = int(filter_upper_frames * args.fps / frame_rate)
 
-    return pd.DataFrame(np.zeros(shape=(df_detections_length, int(height / args.downscale_factor_y))))
+    return np.zeros(shape=(detections_y_length, int(height / args.downscale_factor_y)))
 
 def get_video_stats(TOP_PATH, lower_quantile, upper_quantile, print_stats=False, sample_size=100): 
     video_length = pd.Series()
@@ -193,19 +210,22 @@ def get_video_stats(TOP_PATH, lower_quantile, upper_quantile, print_stats=False,
 def csv_exists(video_path, file_name):
     video_folder = video_path[:video_path.find(file_name)]
     existing_files = os.listdir(video_folder)
-    return file_name[0:-4] + '.csv' in existing_files
+    return file_name[0: -4] + '.npy' in existing_files
 
-def get_destination(df, old_position): 
+def get_destination(arr, old_position, axis): 
     '''Get new destination for pixel around the old position
 
     Arguments: 
-        df: Dataframe with current pixels
+        arr: Dataframe with current pixels
         old_position: position where pixel would be placed initially
 
     returns t and y coordinate for new position of pixel
     '''
     #Directions in which pixel can be moved
-    directions = [(-1,-1), (1, 1)] 
+    if axis == 'y':
+        directions = [(-1,-1), (1, 1)] 
+    else: 
+        directions = [(1, 0), (-1, 0)]
 
     for _ in range(len(directions)):
         direction = random.sample(directions, 1)[0]
@@ -214,11 +234,11 @@ def get_destination(df, old_position):
         y = old_position[1] + direction[1]
         new_pos = (x, y)
 
-        if (new_pos[0] < 0) or (new_pos[0] >= df.shape[0])\
-        or (new_pos[1] < 0) or (new_pos[1] >= df.shape[1]):
+        if (new_pos[0] < 0) or (new_pos[0] >= arr.shape[0])\
+        or (new_pos[1] < 0) or (new_pos[1] >= arr.shape[1]):
             continue
 
-        if df.iloc[new_pos[0], new_pos[1]] == 0:
+        if arr[new_pos[0], new_pos[1]] == 0:
             return new_pos[0], new_pos[1]
 
     #if all position are already a detection pixel, return the old value

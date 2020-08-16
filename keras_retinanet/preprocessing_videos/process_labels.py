@@ -13,7 +13,7 @@ VideoType: the video type. There are 4 video types represented by the index (0: 
 '''
 
 HEADER = ['file_name', 'entering', 'exiting', 'video_type']
-TOP_PATH = '/content/drive/My Drive/person_detection/pcds_dataset_detections/pcds_dataset/'
+TOP_PATH = 'E:/pcds_downloads/'
 
 def main():
 
@@ -56,14 +56,15 @@ def correct_path(df_labels, file_name):
     '''
     
     if 'front' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4].replace('Depth', 'Color') + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4].replace('Depth', 'Color') + '.npy')
         return df_labels
 
     elif 'back' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4].replace('Depth', 'Color') + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4].replace('Depth', 'Color') + '.npy')
         return df_labels
     
     else: 
+        print(file_name)
         raise ValueError('File {} not a valid label file'.format(file_name))
 
 
@@ -81,10 +82,10 @@ def correct_path_csv(df_labels, file_name, save_folder):
     '''
     
     if 'front' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4] + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'front_in' + row[1:-4] + '.npy')
 
     elif 'back' in file_name: 
-        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4] + '.csv')
+        df_labels['file_name'] = df_labels['file_name'].apply(lambda row: 'back_out' + row[1:-4] + '.npy')
     
     else: 
         raise ValueError('File {} not a valid label file'.format(file_name))

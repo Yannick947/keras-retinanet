@@ -152,7 +152,7 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         makedirs(args.tensorboard_dir)
         tensorboard_callback = keras.callbacks.TensorBoard(
             log_dir                = args.tensorboard_dir,
-            update_freq            = 1000,
+            update_freq            = 'epoch',
             histogram_freq         = 0,
             batch_size             = args.batch_size,
             write_graph            = False,
@@ -230,13 +230,8 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
     callbacks.append(hp.KerasCallback(args.tensorboard_dir, hparams))
 
     if args.evaluation and validation_generator:
-        if args.dataset_type == 'coco':
-            from ..callbacks.coco import CocoEval
 
-            # use prediction model for evaluation
-            evaluation = CocoEval(validation_generator, tensorboard=tensorboard_callback)
-        else:
-            evaluation = Evaluate(validation_generator, tensorboard=tensorboard_callback, weighted_average=args.weighted_average)
+        evaluation = Evaluate(validation_generator, tensorboard=tensorboard_callback, weighted_average=args.weighted_average)
         evaluation = RedirectModel(evaluation, prediction_model)
         callbacks.append(evaluation)
 
@@ -260,17 +255,6 @@ def create_callbacks(model, training_model, prediction_model, validation_generat
         )
         checkpoint = RedirectModel(checkpoint, model)
         callbacks.append(checkpoint)
-
-    callbacks.append(keras.callbacks.ReduceLROnPlateau(
-        monitor    = 'loss',
-        factor     = 0.05,
-        patience   = 1,  
-        verbose    = 1,
-        mode       = 'auto',
-        min_delta  = 0.000001,
-        cooldown   = 1,
-        min_lr     = 0.0000001
-    ))
 
     if args.tensorboard_dir:
         callbacks.append(tensorboard_callback)
@@ -319,100 +303,24 @@ def create_generators(args, preprocess_image):
         transform_generator = random_transform_generator(flip_x_chance=0.5)
         visual_effect_generator = None
 
-    if args.dataset_type == 'coco':
-        # import here to prevent unnecessary dependency on cocoapi
-        from ..preprocessing.coco import CocoGenerator
+    train_generator = CSVGenerator(
+        args.annotations,
+        args.classes,
+        transform_generator=transform_generator,
+        visual_effect_generator=visual_effect_generator,
+        **common_args
+    )
 
-        train_generator = CocoGenerator(
-            args.coco_path,
-            'train2017',
-            transform_generator=transform_generator,
-            visual_effect_generator=visual_effect_generator,
-            **common_args
-        )
-
-        validation_generator = CocoGenerator(
-            args.coco_path,
-            'val2017',
-            shuffle_groups=False,
-            **common_args
-        )
-    elif args.dataset_type == 'pascal':
-        train_generator = PascalVocGenerator(
-            args.pascal_path,
-            'train',
-            image_extension=args.image_extension,
-            transform_generator=transform_generator,
-            visual_effect_generator=visual_effect_generator,
-            **common_args
-        )
-
-        validation_generator = PascalVocGenerator(
-            args.pascal_path,
-            'val',
-            image_extension=args.image_extension,
-            shuffle_groups=False,
-            **common_args
-        )
-    elif args.dataset_type == 'csv':
-        train_generator = CSVGenerator(
-            args.annotations,
+    if args.val_annotations:
+        validation_generator = CSVGenerator(
+            args.val_annotations,
             args.classes,
-            transform_generator=transform_generator,
-            visual_effect_generator=visual_effect_generator,
-            **common_args
-        )
-
-        if args.val_annotations:
-            validation_generator = CSVGenerator(
-                args.val_annotations,
-                args.classes,
-                shuffle_groups=False,
-                **common_args
-            )
-            print(args.val_annotations)
-        else:
-            validation_generator = None
-    elif args.dataset_type == 'oid':
-        train_generator = OpenImagesGenerator(
-            args.main_dir,
-            subset='train',
-            version=args.version,
-            labels_filter=args.labels_filter,
-            annotation_cache_dir=args.annotation_cache_dir,
-            parent_label=args.parent_label,
-            transform_generator=transform_generator,
-            visual_effect_generator=visual_effect_generator,
-            **common_args
-        )
-
-        validation_generator = OpenImagesGenerator(
-            args.main_dir,
-            subset='validation',
-            version=args.version,
-            labels_filter=args.labels_filter,
-            annotation_cache_dir=args.annotation_cache_dir,
-            parent_label=args.parent_label,
             shuffle_groups=False,
             **common_args
         )
-    elif args.dataset_type == 'kitti':
-        train_generator = KittiGenerator(
-            args.kitti_path,
-            subset='train',
-            transform_generator=transform_generator,
-            visual_effect_generator=visual_effect_generator,
-            **common_args
-        )
-
-        validation_generator = KittiGenerator(
-            args.kitti_path,
-            subset='val',
-            shuffle_groups=False,
-            **common_args
-        )
+        print(args.val_annotations)
     else:
-        raise ValueError('Invalid data type received: {}'.format(args.dataset_type))
+        validation_generator = None
 
     return train_generator, validation_generator
 
@@ -586,14 +494,13 @@ def main(args=None):
         args,
     )
 
-
     if not args.compute_val_loss:
         validation_generator = None
 
     # start training
     training_model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=args.steps,
+        steps_per_epoch=len(train_generator),
         epochs=args.epochs,
         verbose=1,
         callbacks=callbacks,
@@ -607,5 +514,3 @@ def main(args=None):
 
 if __name__ == '__main__':
      main()
-
-
