@@ -25,3 +25,7 @@ coverage.xml
 *.pb
 *.png
 *.json
+tensorboard_WiderPerson/
+tensorboard_pcds/
+
+
