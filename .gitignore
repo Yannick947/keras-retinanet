@@ -21,3 +21,7 @@ __pycache__/
 .coverage.*
 coverage.xml
 *.cover
+
+*.pb
+*.png
+*.json
