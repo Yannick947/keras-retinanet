@@ -114,3 +114,51 @@ Model name:          Intel(R) Xeon(R) CPU @ 2.30GHz
 CPU MHz:             2300.000
 L3 cache:            46080K
 Thread(s) per core:  2
+
+MemTotal:       13333552 kB
+MemFree:        10742980 kB
+MemAvailable:   12525188 kB
+Buffers:           93640 kB
+Cached:          1838416 kB
+SwapCached:            0 kB
+Active:           685980 kB
+Inactive:        1649848 kB
+Active(anon):     374612 kB
+Inactive(anon):      388 kB
+Active(file):     311368 kB
+Inactive(file):  1649460 kB
+Unevictable:           0 kB
+Mlocked:               0 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:              6012 kB
+Writeback:             0 kB
+AnonPages:        403684 kB
+Mapped:           203848 kB
+Shmem:               932 kB
+Slab:             161900 kB
+SReclaimable:     124448 kB
+SUnreclaim:        37452 kB
+KernelStack:        4432 kB
+PageTables:         5672 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:     6666776 kB
+Committed_AS:    2897668 kB
+VmallocTotal:   34359738367 kB
+VmallocUsed:           0 kB
+VmallocChunk:          0 kB
+Percpu:              928 kB
+AnonHugePages:         0 kB
+ShmemHugePages:        0 kB
+ShmemPmdMapped:        0 kB
+HugePages_Total:       0
+HugePages_Free:        0
+HugePages_Rsvd:        0
+HugePages_Surp:        0
+Hugepagesize:       2048 kB
+Hugetlb:               0 kB
+DirectMap4k:       81084 kB
+DirectMap2M:     6209536 kB
+DirectMap1G:     9437184 kB
